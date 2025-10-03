@@ -1,0 +1,35 @@
+{
+    "dev": {
+        "aws_region": "ap-south-1",
+        "s3_bucket": "lms-api-deployments-1234",
+        "django_settings": "lms_backend.settings",
+        "profile_name": "default",
+        "project_name": "lms-backend",
+        "runtime": "python3.11",
+        "memory_size": 512,
+        "timeout_seconds": 30,
+        "manage_roles": true,
+        "keep_warm": false,
+
+        "slim_handler": false, 
+        "use_precompiled_packages": true,
+        "skip_install": true,
+
+        "exclude": [
+        "node_modules",
+        "tests",
+        "*.sqlite3",
+        "*.pyc",
+        "*.pyo",
+        ".git*",
+        ".pytest_cache",
+        ".venv*",
+        "__pycache__",
+        ".vscode",
+        ".idea"
+        ],
+
+        "apigateway_enabled": true,
+        "certificate_arn": null
+    }
+}

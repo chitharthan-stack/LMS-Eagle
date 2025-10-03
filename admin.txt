@@ -1,0 +1,5 @@
+email : admin01@gmail.com
+name : admin01
+password : admin01@123
+
+python manage.py inspectdb > api/tmp_models_inspectdb.py
