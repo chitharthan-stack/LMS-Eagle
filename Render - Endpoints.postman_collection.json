@@ -1,0 +1,503 @@
+{
+	"info": {
+		"_postman_id": "5101c426-1c9e-4f7e-8b1c-b483db7c8bc9",
+		"name": "Render - Endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "45843080",
+		"_collection_link": "https://chitharthan-713836.postman.co/workspace/chitharthan's-Workspace~3ed17b62-f4ca-4f6b-8196-a67888c533f7/collection/45843080-5101c426-1c9e-4f7e-8b1c-b483db7c8bc9?action=share&source=collection_link&creator=45843080"
+	},
+	"item": [
+		{
+			"name": "Enrollments",
+			"item": [
+				{
+					"name": "List all enrollments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/enrollments/",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"enrollments",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get by enrollment_id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/enrollments/anirudh.bhargava@indusschool.com-2025-2026",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"enrollments",
+								"anirudh.bhargava@indusschool.com-2025-2026"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Subjects",
+			"item": [
+				{
+					"name": "List all subjects",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/subjects/",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"subjects",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get specific subject",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/subjects/anirudh.bhargava@indusschool.com-2025-2026~Spanish B/",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"subjects",
+								"anirudh.bhargava@indusschool.com-2025-2026~Spanish B",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Assessments EOL",
+			"item": [
+				{
+					"name": "List Assessments EOL",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/assessments/eol/",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"assessments",
+								"eol",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Specific Assessments EOL",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/assessments/eol/ishaan.ghosh@indusschool.com-2025-2026~History/",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"assessments",
+								"eol",
+								"ishaan.ghosh@indusschool.com-2025-2026~History",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Assessments FA",
+			"item": [
+				{
+					"name": "List Assessments FA",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/assessments/fa/",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"assessments",
+								"fa",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Specific Assessments FA",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/assessments/fa/aarav.agrawal@indusschool.com-2025-2026~French~SDL/",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"assessments",
+								"fa",
+								"aarav.agrawal@indusschool.com-2025-2026~French~SDL",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "All FA for an enrollment",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/assessments/fa/aarav.agrawal@indusschool.com-2025-2026",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"assessments",
+								"fa",
+								"aarav.agrawal@indusschool.com-2025-2026"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Assessments SA",
+			"item": [
+				{
+					"name": "List",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/assessments/sa/",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"assessments",
+								"sa",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Assessment Weights",
+			"item": [
+				{
+					"name": "List Assessment Weights",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/assessment-weights/",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"assessment-weights",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Specific Assessment Weights",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/assessment-weights/2025-2026~9~T1~HYE/",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"assessment-weights",
+								"2025-2026~9~T1~HYE",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users Table",
+			"item": [
+				{
+					"name": "List Users Table",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/users-table/",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"users-table",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "MYP Grade Boundaries",
+			"item": [
+				{
+					"name": "List MYP Grade Boundaries",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/myp-grade-boundaries/",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"myp-grade-boundaries",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "specific MYP Grade Boundaries",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/myp-grade-boundaries/9~1/",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"myp-grade-boundaries",
+								"9~1",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "DP Grade Boundaries",
+			"item": [
+				{
+					"name": "List DP Grade Boundaries",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/dp-grade-boundaries/",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"dp-grade-boundaries",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "New Request",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Token Blacklist",
+			"item": [
+				{
+					"name": "List Token Blacklist",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/token-blacklisted/",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"token-blacklisted",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "LMS Users",
+			"item": [
+				{
+					"name": "New Request",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://lmseagle.onrender.com/api/lms-users-preapproved/",
+							"protocol": "https",
+							"host": [
+								"lmseagle",
+								"onrender",
+								"com"
+							],
+							"path": [
+								"api",
+								"lms-users-preapproved",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://lmseagle.onrender.com/api/health/",
+					"protocol": "https",
+					"host": [
+						"lmseagle",
+						"onrender",
+						"com"
+					],
+					"path": [
+						"api",
+						"health",
+						""
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

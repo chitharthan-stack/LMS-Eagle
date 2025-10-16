@@ -314,3 +314,4 @@ class ResetPasswordView(APIView):
 
         return Response({"detail": "Password updated"}, status=status.HTTP_200_OK)
 
+#test
