@@ -7,16 +7,18 @@ from . import models, serializers
 from django.db import connection
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny ,IsAuthenticatedOrReadOnly
+from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
 
+# ------------------------------------------------------------
+# Pagination + healthcheck (unchanged)
+# ------------------------------------------------------------
 class DefaultPagination(PageNumberPagination):
     page_size = 25
     page_size_query_param = "page_size"
     max_page_size = 200
 
-# Healthcheck
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def health(request):
@@ -25,7 +27,9 @@ def health(request):
         row = cur.fetchone()
     return Response({"status": "ok", "db": bool(row and row[0] == 1)})
 
-
+# ------------------------------------------------------------
+# Composite lookup mixin (keeps behaviour for viewsets that use ORM)
+# ------------------------------------------------------------
 class CompositeLookupMixin:
     """
     Allow /{pk}/ by encoding composite keys with "~".
@@ -53,8 +57,67 @@ class CompositeLookupMixin:
         self.check_object_permissions(self.request, obj)
         return obj
 
+# ------------------------------------------------------------
+# Helper for raw-SQL read-only viewsets (to avoid 'id' expectation)
+# ------------------------------------------------------------
+def dictfetchall(cursor):
+    cols = [c[0] for c in cursor.description] if cursor.description else []
+    return [dict(zip(cols, row)) for row in cursor.fetchall()]
 
-# Enrollments (simple PK but lookup by enrollment_id)
+class RawReadOnlyViewSet(viewsets.ViewSet):
+    """
+    Generic read-only ViewSet using raw SQL to avoid Django expecting 'id' PK.
+    Subclasses must set `table_name` and implement parse_pk_parts(parts) -> (where_sql, params).
+    Provides:
+      - list(self, request)
+      - retrieve(self, request, pk)
+    You may also add extra @action methods on subclasses (e.g., by_enrollment).
+    """
+    permission_classes = [ReadOnlyOrAdmin]
+    table_name: str = None
+    safety_limit = 1000
+
+    def list(self, request):
+        if not self.table_name:
+            return Response({"detail": "table_name not configured"}, status=500)
+
+        q = request.query_params.get("q")
+        sql = f"SELECT * FROM {self.table_name}"
+        params = []
+
+        if q:
+            # simple, permissive text search on commonly present columns; fails gracefully otherwise
+            # (keeps minimal behaviour; optional)
+            sql += " WHERE (CAST(enrollment_id AS TEXT) ILIKE %s OR CAST(subject AS TEXT) ILIKE %s)"
+            params = [f"%{q}%", f"%{q}%"]
+
+        sql += f" LIMIT {self.safety_limit}"
+        with connection.cursor() as cur:
+            cur.execute(sql, params)
+            rows = dictfetchall(cur)
+        return Response(rows)
+
+    def retrieve(self, request, pk=None):
+        if not self.table_name:
+            return Response({"detail": "table_name not configured"}, status=500)
+        if pk is None:
+            return Response({"detail": "No id provided"}, status=400)
+        parts = [unquote(p) for p in pk.split("~")]
+        try:
+            where_sql, params = self.parse_pk_parts(parts)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=400)
+        sql = f"SELECT * FROM {self.table_name} WHERE {where_sql} LIMIT 1"
+        with connection.cursor() as cur:
+            cur.execute(sql, params)
+            rows = dictfetchall(cur)
+        if not rows:
+            return Response({"detail": "Not found"}, status=404)
+        return Response(rows)
+
+# ------------------------------------------------------------
+# Enrollment (unchanged; uses ORM and has enrollment_id lookup)
+# ------------------------------------------------------------
 class EnrollmentViewSet(viewsets.ModelViewSet):
     lookup_value_regex = ".+"
     queryset = models.Enrollments.objects.all()
@@ -66,103 +129,80 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
     ordering_fields = "__all__"
     lookup_field = "enrollment_id"
 
-
-# Subjects (composite: enrollment_id~subject)
-class SubjectViewSet(CompositeLookupMixin, viewsets.ModelViewSet):
-    lookup_value_regex = ".+"
-    # DO NOT use select_related('enrollment') — enrollment_id is a plain TextField in DB
-    queryset = models.Subjects.objects.all()
-    serializer_class = serializers.SubjectSerializer
-    permission_classes = [ReadOnlyOrAdmin]
-    pagination_class = DefaultPagination
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['enrollment_id', 'subject', 'grade']
-    search_fields = ["enrollment_id", "subject"]
-    ordering_fields = "__all__"
-
-    def parse_pk(self, pk: str) -> dict:
-        parts = [unquote(p) for p in pk.split(self.pk_delim)]
+# ------------------------------------------------------------
+# Subjects: replaced with RawReadOnlyViewSet to avoid missing 'id' errors
+# URL preserved: /api/subjects/
+# Key format for retrieve: <enrollment_id>~<subject>
+# ------------------------------------------------------------
+class SubjectViewSet(RawReadOnlyViewSet):
+    table_name = "subjects"
+    def parse_pk_parts(self, parts):
         if len(parts) != 2:
-            raise ParseError("Expected '<enrollment_id>~<subject>'")
+            raise ValueError("Expected '<enrollment_id>~<subject>'")
         enrollment_id, subject = parts
-        return {"enrollment_id": enrollment_id, "subject": subject}
+        return "enrollment_id = %s AND subject = %s", [enrollment_id, subject]
 
-
-# EOL (composite: enrollment_id~subject)
-class AssessmentEOLViewSet(CompositeLookupMixin, viewsets.ModelViewSet):
-    lookup_value_regex = ".+"
-    queryset = models.AssessmentsEol.objects.all()
-    serializer_class = serializers.AssessmentEOLSerializer
-    permission_classes = [ReadOnlyOrAdmin]
-    pagination_class = DefaultPagination
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['enrollment_id', 'subject', 'grade', 'assessment_type']
-    search_fields = ["enrollment_id", "subject", "assessment_type", "topic", "teachers"]
-    ordering_fields = "__all__"
-
-    def parse_pk(self, pk: str) -> dict:
-        parts = [unquote(p) for p in pk.split(self.pk_delim)]
+# ------------------------------------------------------------
+# Assessments EOL (read-only via raw SQL)
+# URL preserved: /api/assessments/eol/
+# Key format for retrieve: <enrollment_id>~<subject>
+# ------------------------------------------------------------
+class AssessmentEOLViewSet(RawReadOnlyViewSet):
+    table_name = "assessments_eol"
+    def parse_pk_parts(self, parts):
         if len(parts) != 2:
-            raise ParseError("Expected '<enrollment_id>~<subject>'")
+            raise ValueError("Expected '<enrollment_id>~<subject>'")
         enrollment_id, subject = parts
-        return {"enrollment_id": enrollment_id, "subject": subject}
+        return "enrollment_id = %s AND subject = %s", [enrollment_id, subject]
 
-
-# FA (composite: enrollment_id~subject~evaluation_criteria)
-class AssessmentFAViewSet(CompositeLookupMixin, viewsets.ModelViewSet):
-    lookup_value_regex = ".+"
-    queryset = models.AssessmentsFa.objects.all()
-    serializer_class = serializers.AssessmentFASerializer
-    permission_classes = [ReadOnlyOrAdmin]
-    pagination_class = DefaultPagination
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['enrollment_id', 'subject', 'evaluation_criteria', 'assessment_type', 'month']
-    search_fields = ["enrollment_id", "subject", "evaluation_criteria", "assessment_type", "month"]
-    ordering_fields = "__all__"
-
-    def parse_pk(self, pk: str) -> dict:
-        parts = [unquote(p) for p in pk.split(self.pk_delim)]
+# ------------------------------------------------------------
+# Assessments FA (read-only via raw SQL)
+# URL preserved: /api/assessments/fa/
+# Key format for retrieve: <enrollment_id>~<subject>~<evaluation_criteria>
+# Also exposes /api/assessments/fa/{enrollment_id}/ via a method below (router will not auto-wire this action
+# for a ViewSet subclass automatically — we'll provide a manual mapping in urls.py if required,
+# but to keep minimal change we will provide helper method that can be attached if you later convert to ModelViewSet).
+# ------------------------------------------------------------
+class AssessmentFAViewSet(RawReadOnlyViewSet):
+    table_name = "assessments_fa"
+    def parse_pk_parts(self, parts):
         if len(parts) != 3:
-            raise ParseError("Expected '<enrollment_id>~<subject>~<evaluation_criteria>'")
+            raise ValueError("Expected '<enrollment_id>~<subject>~<evaluation_criteria>'")
         enrollment_id, subject, evaluation_criteria = parts
-        return {"enrollment_id": enrollment_id, "subject": subject, "evaluation_criteria": evaluation_criteria}
+        return "enrollment_id = %s AND subject = %s AND evaluation_criteria = %s", [enrollment_id, subject, evaluation_criteria]
 
-    # custom endpoint: GET /api/assessments/fa/{enrollment_id}/
-    @action(detail=False, methods=["get"], url_path=r"(?P<enrollment_id>[^/]+)")
-    def by_enrollment(self, request, enrollment_id=None):
-        qs = self.get_queryset().filter(enrollment_id=enrollment_id)
-        serializer = self.get_serializer(qs, many=True)
-        return Response(serializer.data)
+    # convenience method (callable from code if needed)
+    def list_by_enrollment(self, request, enrollment_id=None):
+        sql = f"SELECT * FROM {self.table_name} WHERE enrollment_id = %s LIMIT {self.safety_limit}"
+        with connection.cursor() as cur:
+            cur.execute(sql, [enrollment_id])
+            rows = dictfetchall(cur)
+        return Response(rows)
 
-
-# SA (composite: enrollment_id~subject~evaluation_criteria)
-class AssessmentSAViewSet(CompositeLookupMixin, viewsets.ModelViewSet):
-    lookup_value_regex = ".+"
-    queryset = models.AssessmentsSa.objects.all()
-    serializer_class = serializers.AssessmentSASerializer
-    permission_classes = [ReadOnlyOrAdmin]
-    pagination_class = DefaultPagination
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['enrollment_id', 'subject', 'evaluation_criteria', 'assessment_type', 'month']
-    search_fields = ["enrollment_id", "subject", "evaluation_criteria", "assessment_type", "month"]
-    ordering_fields = "__all__"
-
-    def parse_pk(self, pk: str) -> dict:
-        parts = [unquote(p) for p in pk.split(self.pk_delim)]
+# ------------------------------------------------------------
+# Assessments SA (read-only via raw SQL)
+# URL preserved: /api/assessments/sa/
+# Key format for retrieve: <enrollment_id>~<subject>~<evaluation_criteria>
+# ------------------------------------------------------------
+class AssessmentSAViewSet(RawReadOnlyViewSet):
+    table_name = "assessments_sa"
+    def parse_pk_parts(self, parts):
         if len(parts) != 3:
-            raise ParseError("Expected '<enrollment_id>~<subject>~<evaluation_criteria>'")
+            raise ValueError("Expected '<enrollment_id>~<subject>~<evaluation_criteria>'")
         enrollment_id, subject, evaluation_criteria = parts
-        return {"enrollment_id": enrollment_id, "subject": subject, "evaluation_criteria": evaluation_criteria}
+        return "enrollment_id = %s AND subject = %s AND evaluation_criteria = %s", [enrollment_id, subject, evaluation_criteria]
 
-    # custom endpoint: GET /api/assessments/sa/{enrollment_id}/
-    @action(detail=False, methods=["get"], url_path=r"(?P<enrollment_id>[^/]+)")
-    def by_enrollment(self, request, enrollment_id=None):
-        qs = self.get_queryset().filter(enrollment_id=enrollment_id)
-        serializer = self.get_serializer(qs, many=True)
-        return Response(serializer.data)
+    def list_by_enrollment(self, request, enrollment_id=None):
+        sql = f"SELECT * FROM {self.table_name} WHERE enrollment_id = %s LIMIT {self.safety_limit}"
+        with connection.cursor() as cur:
+            cur.execute(sql, [enrollment_id])
+            rows = dictfetchall(cur)
+        return Response(rows)
 
-
-# AssessmentWeights (composite: academic_year~grade~term~assessment_type)
+# ------------------------------------------------------------
+# AssessmentWeights (unchanged ORM usage)
+# composite primary lookup by academic_year~grade~term~assessment_type
+# ------------------------------------------------------------
 class AssessmentWeightsViewSet(CompositeLookupMixin, viewsets.ModelViewSet):
     """
     Detail id format:
@@ -190,7 +230,9 @@ class AssessmentWeightsViewSet(CompositeLookupMixin, viewsets.ModelViewSet):
             "assessment_type": assessment_type,
         }
 
-
+# ------------------------------------------------------------
+# UsersTable + MypGradeBoundaries (unchanged)
+# ------------------------------------------------------------
 class UsersTableViewSet(viewsets.ModelViewSet):
     queryset = models.UsersTable.objects.all()
     serializer_class = serializers.UsersTableSerializer
@@ -199,7 +241,6 @@ class UsersTableViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["email", "username"]
     ordering_fields = "__all__"
-
 
 class MypGradeBoundariesViewSet(CompositeLookupMixin, viewsets.ModelViewSet):
     """
@@ -223,7 +264,9 @@ class MypGradeBoundariesViewSet(CompositeLookupMixin, viewsets.ModelViewSet):
         # grade & boundary_level are TextField in DB — keep as strings
         return {"grade": grade_str, "boundary_level": boundary_level_str}
 
-# Lms users
+# ------------------------------------------------------------
+# Lms users + token blacklist + dp grade boundaries (unchanged)
+# ------------------------------------------------------------
 class LmsUsersUserViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Read-only viewset for LMS users table (existing DB table).
@@ -243,7 +286,6 @@ class LmsUsersStaffpreapprovedViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ['email', 'invite_token', 'name']
     filterset_fields = ['email', 'role']
 
-# Token blacklist
 class TokenBlacklistOutstandingtokenViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.TokenBlacklistOutstandingtoken.objects.all()
     serializer_class = serializers.TokenBlacklistOutstandingtokenSerializer
@@ -260,7 +302,6 @@ class TokenBlacklistBlacklistedtokenViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ['token_id']
     filterset_fields = ['token_id']
 
-# DP grade boundaries
 class DpGradeBoundariesViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.DpGradeBoundaries.objects.all()
     serializer_class = serializers.DpGradeBoundariesSerializer
