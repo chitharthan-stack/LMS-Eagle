@@ -1,3 +1,4 @@
+# api/views.py
 from urllib.parse import unquote
 from rest_framework import viewsets, filters
 from rest_framework.pagination import PageNumberPagination
@@ -5,11 +6,10 @@ from rest_framework.exceptions import NotFound, ParseError
 from .permissions import ReadOnlyOrAdmin
 from . import models, serializers
 from django.db import connection
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.decorators import action
 
 # ------------------------------------------------------------
 # Pagination + healthcheck (unchanged)
@@ -71,11 +71,12 @@ class RawReadOnlyViewSet(viewsets.ViewSet):
     Provides:
       - list(self, request)
       - retrieve(self, request, pk)
-    You may also add extra @action methods on subclasses (e.g., by_enrollment).
     """
     permission_classes = [ReadOnlyOrAdmin]
     table_name: str = None
     safety_limit = 1000
+    # ensure router accepts arbitrary lookup values (keeps parity with other viewsets)
+    lookup_value_regex = ".+"
 
     def list(self, request):
         if not self.table_name:
@@ -86,8 +87,7 @@ class RawReadOnlyViewSet(viewsets.ViewSet):
         params = []
 
         if q:
-            # simple, permissive text search on commonly present columns; fails gracefully otherwise
-            # (keeps minimal behaviour; optional)
+            # permissive text search; no guarantee that columns exist on every table but this is graceful.
             sql += " WHERE (CAST(enrollment_id AS TEXT) ILIKE %s OR CAST(subject AS TEXT) ILIKE %s)"
             params = [f"%{q}%", f"%{q}%"]
 
@@ -102,6 +102,7 @@ class RawReadOnlyViewSet(viewsets.ViewSet):
             return Response({"detail": "table_name not configured"}, status=500)
         if pk is None:
             return Response({"detail": "No id provided"}, status=400)
+        # split on ~ and unquote parts
         parts = [unquote(p) for p in pk.split("~")]
         try:
             where_sql, params = self.parse_pk_parts(parts)
@@ -130,7 +131,7 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
     lookup_field = "enrollment_id"
 
 # ------------------------------------------------------------
-# Subjects: replaced with RawReadOnlyViewSet to avoid missing 'id' errors
+# Subjects: use RawReadOnlyViewSet to avoid missing 'id' DB errors
 # URL preserved: /api/subjects/
 # Key format for retrieve: <enrollment_id>~<subject>
 # ------------------------------------------------------------
@@ -159,9 +160,7 @@ class AssessmentEOLViewSet(RawReadOnlyViewSet):
 # Assessments FA (read-only via raw SQL)
 # URL preserved: /api/assessments/fa/
 # Key format for retrieve: <enrollment_id>~<subject>~<evaluation_criteria>
-# Also exposes /api/assessments/fa/{enrollment_id}/ via a method below (router will not auto-wire this action
-# for a ViewSet subclass automatically — we'll provide a manual mapping in urls.py if required,
-# but to keep minimal change we will provide helper method that can be attached if you later convert to ModelViewSet).
+# Also provide a non-conflicting enrollment list path at 'enrollment/<enrollment_id>/'
 # ------------------------------------------------------------
 class AssessmentFAViewSet(RawReadOnlyViewSet):
     table_name = "assessments_fa"
@@ -171,7 +170,8 @@ class AssessmentFAViewSet(RawReadOnlyViewSet):
         enrollment_id, subject, evaluation_criteria = parts
         return "enrollment_id = %s AND subject = %s AND evaluation_criteria = %s", [enrollment_id, subject, evaluation_criteria]
 
-    # convenience method (callable from code if needed)
+    # non-conflicting helper route when registered as a ViewSet (router won't auto-wire this as a route,
+    # but you can manually add: path('assessments/fa/enrollment/<str:enrollment_id>/', ...) in urls.py if desired).
     def list_by_enrollment(self, request, enrollment_id=None):
         sql = f"SELECT * FROM {self.table_name} WHERE enrollment_id = %s LIMIT {self.safety_limit}"
         with connection.cursor() as cur:
@@ -231,7 +231,7 @@ class AssessmentWeightsViewSet(CompositeLookupMixin, viewsets.ModelViewSet):
         }
 
 # ------------------------------------------------------------
-# UsersTable + MypGradeBoundaries (unchanged)
+# UsersTable + MypGradeBoundaries (Myp handled via raw SQL if table has no id)
 # ------------------------------------------------------------
 class UsersTableViewSet(viewsets.ModelViewSet):
     queryset = models.UsersTable.objects.all()
@@ -242,35 +242,19 @@ class UsersTableViewSet(viewsets.ModelViewSet):
     search_fields = ["email", "username"]
     ordering_fields = "__all__"
 
-class MypGradeBoundariesViewSet(CompositeLookupMixin, viewsets.ModelViewSet):
-    """
-    Detail id format:
-      <grade>~<boundary_level>
-    """
-    lookup_value_regex = ".+"
-    queryset = models.MypGradeBoundaries.objects.all()
-    serializer_class = serializers.MypGradeBoundariesSerializer
-    permission_classes = [ReadOnlyOrAdmin]
-    pagination_class = DefaultPagination
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["grade", "boundary_level"]
-    ordering_fields = "__all__"
-
-    def parse_pk(self, pk: str) -> dict:
-        parts = [unquote(p) for p in pk.split(self.pk_delim)]
+# If myp_grade_boundaries has no 'id' column, use raw viewset; otherwise you can switch back to ModelViewSet.
+class MypGradeBoundariesViewSet(RawReadOnlyViewSet):
+    table_name = "myp_grade_boundaries"
+    def parse_pk_parts(self, parts):
         if len(parts) != 2:
-            raise ParseError("Expected '<grade>~<boundary_level>'")
+            raise ValueError("Expected '<grade>~<boundary_level>'")
         grade_str, boundary_level_str = parts
-        # grade & boundary_level are TextField in DB — keep as strings
-        return {"grade": grade_str, "boundary_level": boundary_level_str}
+        return "grade = %s AND boundary_level = %s", [grade_str, boundary_level_str]
 
 # ------------------------------------------------------------
 # Lms users + token blacklist + dp grade boundaries (unchanged)
 # ------------------------------------------------------------
 class LmsUsersUserViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    Read-only viewset for LMS users table (existing DB table).
-    """
     queryset = models.LmsUsersUser.objects.all()
     serializer_class = serializers.LmsUsersUserSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
