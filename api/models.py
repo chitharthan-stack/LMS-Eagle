@@ -94,6 +94,7 @@ class Enrollments(models.Model):
     current = models.TextField(blank=True, null=True)
     current_grade_overall = models.TextField(blank=True, null=True)
     predicted_grade_overall = models.TextField(blank=True, null=True)
+    total_grade_overall = models.TextField(blank=True, null=True)
 
     class Meta:
         managed = False
