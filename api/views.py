@@ -102,12 +102,36 @@ class RawReadOnlyViewSet(viewsets.ViewSet):
             return Response({"detail": "table_name not configured"}, status=500)
         if pk is None:
             return Response({"detail": "No id provided"}, status=400)
-        # split on ~ and unquote parts
+
+        # decode parts separated by "~"
         parts = [unquote(p) for p in pk.split("~")]
+
+        # ---- Special case: single-part pk -> treat as enrollment_id list request ----
+        if len(parts) == 1:
+            # if subclass defines list_by_enrollment, call it (returns multiple rows)
+            enrollment_id = parts[0]
+            if hasattr(self, "list_by_enrollment"):
+                return self.list_by_enrollment(request, enrollment_id=enrollment_id)
+
+            # fallback: run simple WHERE on enrollment_id and return first row (existing semantics)
+            where_sql = "enrollment_id = %s"
+            params = [enrollment_id]
+            sql = f"SELECT * FROM {self.table_name} WHERE {where_sql} LIMIT 1"
+            with connection.cursor() as cur:
+                cur.execute(sql, params)
+                rows = dictfetchall(cur)
+            if not rows:
+                return Response({"detail": "Not found"}, status=404)
+            return Response(rows)
+
+        # ---- 3-part or other (expected composite) ----
         try:
             where_sql, params = self.parse_pk_parts(parts)
         except ValueError as e:
             return Response({"detail": str(e)}, status=400)
+
+        # If parse_pk_parts returns a WHERE that can select multiple rows but the
+        # intent was returning a single record we keep old LIMIT 1 behavior.
         sql = f"SELECT * FROM {self.table_name} WHERE {where_sql} LIMIT 1"
         with connection.cursor() as cur:
             cur.execute(sql, params)
@@ -115,6 +139,7 @@ class RawReadOnlyViewSet(viewsets.ViewSet):
         if not rows:
             return Response({"detail": "Not found"}, status=404)
         return Response(rows)
+
 
 # ------------------------------------------------------------
 # Enrollment (unchanged; uses ORM and has enrollment_id lookup)
@@ -164,15 +189,21 @@ class AssessmentEOLViewSet(RawReadOnlyViewSet):
 # ------------------------------------------------------------
 class AssessmentFAViewSet(RawReadOnlyViewSet):
     table_name = "assessments_fa"
+
     def parse_pk_parts(self, parts):
         if len(parts) != 3:
             raise ValueError("Expected '<enrollment_id>~<subject>~<evaluation_criteria>'")
         enrollment_id, subject, evaluation_criteria = parts
-        return "enrollment_id = %s AND subject = %s AND evaluation_criteria = %s", [enrollment_id, subject, evaluation_criteria]
+        return "enrollment_id = %s AND subject = %s AND evaluation_criteria = %s", [
+            enrollment_id,
+            subject,
+            evaluation_criteria,
+        ]
 
-    # non-conflicting helper route when registered as a ViewSet (router won't auto-wire this as a route,
-    # but you can manually add: path('assessments/fa/enrollment/<str:enrollment_id>/', ...) in urls.py if desired).
+    # ✅ NEW: Allow fetching all FA rows for one enrollment_id
     def list_by_enrollment(self, request, enrollment_id=None):
+        if not enrollment_id:
+            return Response({"detail": "No enrollment_id provided"}, status=400)
         sql = f"SELECT * FROM {self.table_name} WHERE enrollment_id = %s LIMIT {self.safety_limit}"
         with connection.cursor() as cur:
             cur.execute(sql, [enrollment_id])
@@ -186,13 +217,21 @@ class AssessmentFAViewSet(RawReadOnlyViewSet):
 # ------------------------------------------------------------
 class AssessmentSAViewSet(RawReadOnlyViewSet):
     table_name = "assessments_sa"
+
     def parse_pk_parts(self, parts):
         if len(parts) != 3:
             raise ValueError("Expected '<enrollment_id>~<subject>~<evaluation_criteria>'")
         enrollment_id, subject, evaluation_criteria = parts
-        return "enrollment_id = %s AND subject = %s AND evaluation_criteria = %s", [enrollment_id, subject, evaluation_criteria]
+        return "enrollment_id = %s AND subject = %s AND evaluation_criteria = %s", [
+            enrollment_id,
+            subject,
+            evaluation_criteria,
+        ]
 
+    # ✅ NEW: Allow fetching all SA rows for one enrollment_id
     def list_by_enrollment(self, request, enrollment_id=None):
+        if not enrollment_id:
+            return Response({"detail": "No enrollment_id provided"}, status=400)
         sql = f"SELECT * FROM {self.table_name} WHERE enrollment_id = %s LIMIT {self.safety_limit}"
         with connection.cursor() as cur:
             cur.execute(sql, [enrollment_id])

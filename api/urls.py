@@ -7,6 +7,8 @@ from .views import (
     LmsUsersUserViewSet, LmsUsersStaffpreapprovedViewSet, TokenBlacklistOutstandingtokenViewSet,
     TokenBlacklistBlacklistedtokenViewSet, DpGradeBoundariesViewSet
 )
+from . import views
+
 
 router = DefaultRouter()
 router.register(r"enrollments", EnrollmentViewSet, basename="enrollments")
@@ -24,9 +26,22 @@ router.register(r"lms-users-preapproved", LmsUsersStaffpreapprovedViewSet, basen
 router.register(r"token-outstanding", TokenBlacklistOutstandingtokenViewSet, basename="token-outstanding")
 router.register(r"token-blacklisted", TokenBlacklistBlacklistedtokenViewSet, basename="token-blacklisted")
 router.register(r"dp-grade-boundaries", DpGradeBoundariesViewSet, basename="dp-grade-boundaries")
+
+
+
 urlpatterns = [
     path("", include(router.urls)),
     path("health/", health, name="api-health"),
+    path(
+    "assessments/fa/by-enrollment/<path:enrollment_id>/",
+    views.AssessmentFAViewSet.as_view({"get": "list_by_enrollment"}),
+    name="assessments-fa-by-enrollment",
+    ),
+    path(
+        "assessments/sa/by-enrollment/<path:enrollment_id>/",
+        views.AssessmentSAViewSet.as_view({"get": "list_by_enrollment"}),
+        name="assessments-sa-by-enrollment",
+    ),
 ]
 
 # ensure router viewsets accept arbitrary chars for lookup value
