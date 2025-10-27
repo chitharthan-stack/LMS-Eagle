@@ -99,24 +99,28 @@ class Enrollments(models.Model):
     class Meta:
         managed = False
         db_table = "enrollments"
-        # notice: original model had unique_together (user_email, academic_year)
-        # if DB enforces it, add unique_together; tmp autogen did not; verify on DB.
+
 
 
 class Subjects(models.Model):
     enrollment_id = models.TextField(primary_key=True, db_column='enrollment_id')
     subject = models.TextField(blank=True, null=True)
+    
     grade = models.TextField(blank=True, null=True)
+    
     current_sub_pct = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     predicted_sub_pct = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    
     current_sub_ib = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)
     predicted_sub_ib = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)
+    
     descriptive_sub = models.TextField(blank=True, null=True)
     prescriptive_sub = models.TextField(blank=True, null=True)
     engagement_analysis_sub = models.TextField(blank=True, null=True)
     current_sub = models.TextField(blank=True, null=True)
     dates = models.TextField(blank=True, null=True)
     engagement_analysis = models.JSONField(blank=True, null=True)
+    
     current_sub_grade = models.TextField(blank=True, null=True)
     predicted_sub_grade = models.TextField(blank=True, null=True)
 
@@ -250,7 +254,7 @@ class AssessmentWeights(models.Model):
 class DpGradeBoundaries(models.Model):
     subject = models.TextField(primary_key=True, db_column='subject')
     level = models.TextField(blank=True, null=True)
-    grade = models.TextField(blank=True, null=True)
+    grade = models.IntegerField(blank=True, null=True)
     min_score = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     max_score = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
