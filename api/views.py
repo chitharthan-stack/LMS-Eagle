@@ -199,7 +199,6 @@ class AssessmentFAViewSet(RawReadOnlyViewSet):
             [enrollment_id, subject, evaluation_criteria],
         )
 
-    # ---- GROUPING HELPER ----
     def _group_fa_rows(self, rows):
         grouped = {}
 
@@ -211,9 +210,10 @@ class AssessmentFAViewSet(RawReadOnlyViewSet):
             )
 
             if key not in grouped:
-                # Start a new group
                 grouped[key] = {
-                    **row,
+                    **{k: v for k, v in row.items()
+                       if k not in ("month", "task_name", "teachers",
+                                    "student_score", "max_score_old")},
                     "month": [],
                     "task_name": [],
                     "teachers": [],
@@ -221,53 +221,72 @@ class AssessmentFAViewSet(RawReadOnlyViewSet):
                     "max_score_old": [],
                 }
 
-            # Append row-level data into arrays
-            grouped[key]["month"].append(row["month"])
-            grouped[key]["task_name"].append(row["task_name"])
-            grouped[key]["teachers"].append(row["teachers"])
+            grouped[key]["month"].extend(row["month"])
+            grouped[key]["task_name"].extend(row["task_name"])
+            grouped[key]["teachers"].extend(row["teachers"])
 
-            # Convert numeric text → float safely
-            try:
-                grouped[key]["student_score"].append(float(row["student_score"]))
-            except:
-                grouped[key]["student_score"].append(None)
+            grouped[key]["student_score"].extend([
+                float(x) if x not in (None, "") else None
+                for x in row["student_score"]
+            ])
 
-            try:
-                grouped[key]["max_score_old"].append(float(row["max_score_old"]))
-            except:
-                grouped[key]["max_score_old"].append(None)
+            grouped[key]["max_score_old"].extend([
+                float(x) if x not in (None, "") else None
+                for x in row["max_score_old"]
+            ])
 
-        # Convert dict → list
-        return list(grouped.values())
+        # ---- DEDUPLICATE & SORT (CLEAN OUTPUT) ----
+        cleaned = []
+        for obj in grouped.values():
 
-    # ---------------------------------------------------------------
-    # LIST ALL FA (grouped)
-    # ---------------------------------------------------------------
+            combined = list(zip(
+                obj["month"],
+                obj["task_name"],
+                obj["teachers"],
+                obj["student_score"],
+                obj["max_score_old"],
+            ))
+
+            # Remove duplicates but keep order
+            unique = list(dict.fromkeys(combined))
+
+            # Sort tasks by date (month field)
+            unique.sort(key=lambda x: x[0])
+
+            # Unzip back
+            obj["month"] = [u[0] for u in unique]
+            obj["task_name"] = [u[1] for u in unique]
+            obj["teachers"] = [u[2] for u in unique]
+            obj["student_score"] = [u[3] for u in unique]
+            obj["max_score_old"] = [u[4] for u in unique]
+
+            cleaned.append(obj)
+
+        return cleaned
+
     def list(self, request):
         sql = f"SELECT * FROM {self.table_name} LIMIT {self.safety_limit}"
-
         with connection.cursor() as cur:
             cur.execute(sql)
             rows = dictfetchall(cur)
+        return Response(self._group_fa_rows(rows))
 
-        grouped = self._group_fa_rows(rows)
-        return Response(grouped)
-
-    # ---------------------------------------------------------------
-    # LIST FA BY ENROLLMENT (grouped)
-    # ---------------------------------------------------------------
     def list_by_enrollment(self, request, enrollment_id=None):
         if not enrollment_id:
             return Response({"detail": "No enrollment_id provided"}, status=400)
 
-        sql = f"SELECT * FROM {self.table_name} WHERE enrollment_id = %s LIMIT {self.safety_limit}"
+        sql = f"""
+            SELECT *
+            FROM {self.table_name}
+            WHERE enrollment_id = %s
+            LIMIT {self.safety_limit}
+        """
 
         with connection.cursor() as cur:
             cur.execute(sql, [enrollment_id])
             rows = dictfetchall(cur)
 
-        grouped = self._group_fa_rows(rows)
-        return Response(grouped)
+        return Response(self._group_fa_rows(rows))
 
 # ------------------------------------------------------------
 # Assessments SA (read-only via raw SQL)
