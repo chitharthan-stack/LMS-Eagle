@@ -194,21 +194,80 @@ class AssessmentFAViewSet(RawReadOnlyViewSet):
         if len(parts) != 3:
             raise ValueError("Expected '<enrollment_id>~<subject>~<evaluation_criteria>'")
         enrollment_id, subject, evaluation_criteria = parts
-        return "enrollment_id = %s AND subject = %s AND evaluation_criteria = %s", [
-            enrollment_id,
-            subject,
-            evaluation_criteria,
-        ]
+        return (
+            "enrollment_id = %s AND subject = %s AND evaluation_criteria = %s",
+            [enrollment_id, subject, evaluation_criteria],
+        )
 
-    # ✅ NEW: Allow fetching all FA rows for one enrollment_id
+    # ---- GROUPING HELPER ----
+    def _group_fa_rows(self, rows):
+        grouped = {}
+
+        for row in rows:
+            key = (
+                row["enrollment_id"],
+                row["subject"],
+                row["evaluation_criteria"],
+            )
+
+            if key not in grouped:
+                # Start a new group
+                grouped[key] = {
+                    **row,
+                    "month": [],
+                    "task_name": [],
+                    "teachers": [],
+                    "student_score": [],
+                    "max_score_old": [],
+                }
+
+            # Append row-level data into arrays
+            grouped[key]["month"].append(row["month"])
+            grouped[key]["task_name"].append(row["task_name"])
+            grouped[key]["teachers"].append(row["teachers"])
+
+            # Convert numeric text → float safely
+            try:
+                grouped[key]["student_score"].append(float(row["student_score"]))
+            except:
+                grouped[key]["student_score"].append(None)
+
+            try:
+                grouped[key]["max_score_old"].append(float(row["max_score_old"]))
+            except:
+                grouped[key]["max_score_old"].append(None)
+
+        # Convert dict → list
+        return list(grouped.values())
+
+    # ---------------------------------------------------------------
+    # LIST ALL FA (grouped)
+    # ---------------------------------------------------------------
+    def list(self, request):
+        sql = f"SELECT * FROM {self.table_name} LIMIT {self.safety_limit}"
+
+        with connection.cursor() as cur:
+            cur.execute(sql)
+            rows = dictfetchall(cur)
+
+        grouped = self._group_fa_rows(rows)
+        return Response(grouped)
+
+    # ---------------------------------------------------------------
+    # LIST FA BY ENROLLMENT (grouped)
+    # ---------------------------------------------------------------
     def list_by_enrollment(self, request, enrollment_id=None):
         if not enrollment_id:
             return Response({"detail": "No enrollment_id provided"}, status=400)
+
         sql = f"SELECT * FROM {self.table_name} WHERE enrollment_id = %s LIMIT {self.safety_limit}"
+
         with connection.cursor() as cur:
             cur.execute(sql, [enrollment_id])
             rows = dictfetchall(cur)
-        return Response(rows)
+
+        grouped = self._group_fa_rows(rows)
+        return Response(grouped)
 
 # ------------------------------------------------------------
 # Assessments SA (read-only via raw SQL)
