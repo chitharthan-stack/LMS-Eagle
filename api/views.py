@@ -211,9 +211,18 @@ class AssessmentFAViewSet(RawReadOnlyViewSet):
 
             if key not in grouped:
                 grouped[key] = {
-                    **{k: v for k, v in row.items()
-                       if k not in ("month", "task_name", "teachers",
-                                    "student_score", "max_score_old")},
+                    **{
+                        k: v
+                        for k, v in row.items()
+                        if k
+                        not in (
+                            "month",
+                            "task_name",
+                            "teachers",
+                            "student_score",
+                            "max_score_old",
+                        )
+                    },
                     "month": [],
                     "task_name": [],
                     "teachers": [],
@@ -225,40 +234,61 @@ class AssessmentFAViewSet(RawReadOnlyViewSet):
             grouped[key]["task_name"].extend(row["task_name"])
             grouped[key]["teachers"].extend(row["teachers"])
 
-            grouped[key]["student_score"].extend([
-                float(x) if x not in (None, "") else None
-                for x in row["student_score"]
-            ])
+            grouped[key]["student_score"].extend(
+                [float(x) if x not in (None, "") else None for x in row["student_score"]]
+            )
 
-            grouped[key]["max_score_old"].extend([
-                float(x) if x not in (None, "") else None
-                for x in row["max_score_old"]
-            ])
+            grouped[key]["max_score_old"].extend(
+                [float(x) if x not in (None, "") else None for x in row["max_score_old"]]
+            )
 
-        # ---- DEDUPLICATE & SORT (CLEAN OUTPUT) ----
+        # CLEAN + FIX COUNTS
         cleaned = []
         for obj in grouped.values():
 
-            combined = list(zip(
-                obj["month"],
-                obj["task_name"],
-                obj["teachers"],
-                obj["student_score"],
-                obj["max_score_old"],
-            ))
+            # Combine to dedupe rows
+            combined = list(
+                zip(
+                    obj["month"],
+                    obj["task_name"],
+                    obj["teachers"],
+                    obj["student_score"],
+                    obj["max_score_old"],
+                )
+            )
 
-            # Remove duplicates but keep order
+            # Remove duplicates
             unique = list(dict.fromkeys(combined))
 
-            # Sort tasks by date (month field)
+            # Sort by date (month)
             unique.sort(key=lambda x: x[0])
 
-            # Unzip back
+            # Unzip
             obj["month"] = [u[0] for u in unique]
             obj["task_name"] = [u[1] for u in unique]
             obj["teachers"] = [u[2] for u in unique]
             obj["student_score"] = [u[3] for u in unique]
             obj["max_score_old"] = [u[4] for u in unique]
+
+            # ------------------------------------------
+            # RECALCULATE ALL COUNTS BASED ON CLEAN TASKS
+            # ------------------------------------------
+            t1_count = len(obj["task_name"])
+
+            if obj["evaluation_criteria"] == "SDL":
+                obj["count_sdl_t1"] = t1_count
+                obj["count_sdl_t2"] = 0
+                obj["count_sdl_t3"] = 0
+
+            elif obj["evaluation_criteria"] == "WT":
+                obj["count_wt_t1"] = t1_count
+                obj["count_wt_t2"] = 0
+                obj["count_wt_t3"] = 0
+
+            elif obj["evaluation_criteria"] == "FA":
+                obj["count_fawriting_t1"] = t1_count
+                obj["count_fawriting_t2"] = 0
+                obj["count_fawriting_t3"] = 0
 
             cleaned.append(obj)
 
