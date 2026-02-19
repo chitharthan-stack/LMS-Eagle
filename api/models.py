@@ -285,3 +285,18 @@ class UsersTable(models.Model):
         managed = False
         db_table = "users_table"
 
+class AssessmentsNonAcademic(models.Model):
+    enrollment_id = models.TextField(blank=True, null=True)
+    subject = models.TextField(blank=True, null=True)
+    grade = models.TextField(blank=True, null=True)
+    assessment_type = models.TextField(blank=True, null=True)
+    task_name = models.TextField(blank=True, null=True)
+    student_score = models.TextField(blank=True, null=True)
+    max_score_old = models.TextField(blank=True, null=True)
+    total_percentage = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    descriptive_analysis = models.TextField(blank=True, null=True)
+    prescriptive_analysis = models.TextField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = "assessments_non_academic"

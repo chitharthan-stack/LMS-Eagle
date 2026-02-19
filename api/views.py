@@ -440,3 +440,34 @@ class DpGradeBoundariesViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['subject', 'level', 'grade']
     filterset_fields = ['subject', 'level', 'grade']
+
+
+class AssessmentNonAcademicViewSet(RawReadOnlyViewSet):
+    table_name = "assessments_non_academic"
+
+    def parse_pk_parts(self, parts):
+        if len(parts) != 3:
+            raise ValueError("Expected '<enrollment_id>~<subject>~<task_name>'")
+        enrollment_id, subject, task_name = parts
+        return (
+            "enrollment_id = %s AND subject = %s AND task_name = %s",
+            [enrollment_id, subject, task_name],
+        )
+
+    # optional: allow fetching all records for one enrollment
+    def list_by_enrollment(self, request, enrollment_id=None):
+        if not enrollment_id:
+            return Response({"detail": "No enrollment_id provided"}, status=400)
+
+        sql = f"""
+            SELECT *
+            FROM {self.table_name}
+            WHERE enrollment_id = %s
+            LIMIT {self.safety_limit}
+        """
+
+        with connection.cursor() as cur:
+            cur.execute(sql, [enrollment_id])
+            rows = dictfetchall(cur)
+
+        return Response(rows)

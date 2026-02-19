@@ -81,3 +81,9 @@ class DpGradeBoundariesSerializer(serializers.ModelSerializer):
         model = models.DpGradeBoundaries
         fields = "__all__"
         read_only_fields = tuple(f.name for f in models.DpGradeBoundaries._meta.fields)
+
+
+class AssessmentNonAcademicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.AssessmentsNonAcademic
+        fields = "__all__"

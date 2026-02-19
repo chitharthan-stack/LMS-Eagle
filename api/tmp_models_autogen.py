@@ -1,78 +1,6 @@
 # Auto-generated model suggestions. Review & merge into api/models.py
 from django.db import models
 
-class LmsUsersPasswordresetotp(models.Model):
-    # NOTE: table has an 'id' column.
-    id = models.AutoField(primary_key=True)
-    otp = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(blank=True, null=True)
-    expires_at = models.DateTimeField(blank=True, null=True)
-    used = models.TextField(blank=True, null=True)
-    user_id = models.TextField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = "LMS_users_passwordresetotp"
-
-
-class LmsUsersStaffpreapproved(models.Model):
-    # NOTE: table has an 'id' column.
-    id = models.AutoField(primary_key=True)
-    email = models.TextField(blank=True, null=True)
-    role = models.TextField(blank=True, null=True)
-    name = models.TextField(blank=True, null=True)
-    department = models.TextField(blank=True, null=True)
-    invite_token = models.TextField(blank=True, null=True)
-    expires_at = models.DateTimeField(blank=True, null=True)
-    used = models.TextField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = "LMS_users_staffpreapproved"
-
-
-class LmsUsersUser(models.Model):
-    # NOTE: table has an 'id' column.
-    id = models.AutoField(primary_key=True)
-    password = models.TextField(blank=True, null=True)
-    last_login = models.DateTimeField(blank=True, null=True)
-    is_superuser = models.TextField(blank=True, null=True)
-    username = models.TextField(blank=True, null=True)
-    first_name = models.TextField(blank=True, null=True)
-    last_name = models.TextField(blank=True, null=True)
-    is_staff = models.TextField(blank=True, null=True)
-    is_active = models.TextField(blank=True, null=True)
-    date_joined = models.DateTimeField(blank=True, null=True)
-    email = models.TextField(blank=True, null=True)
-    role = models.TextField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = "LMS_users_user"
-
-
-class LmsUsersUserGroups(models.Model):
-    # NOTE: table has an 'id' column.
-    id = models.AutoField(primary_key=True)
-    user_id = models.TextField(blank=True, null=True)
-    group_id = models.TextField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = "LMS_users_user_groups"
-
-
-class LmsUsersUserUserPermissions(models.Model):
-    # NOTE: table has an 'id' column.
-    id = models.AutoField(primary_key=True)
-    user_id = models.TextField(blank=True, null=True)
-    permission_id = models.TextField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = "LMS_users_user_user_permissions"
-
-
 class AssessmentWeights(models.Model):
     academic_year = models.TextField(blank=True, null=True)
     grade = models.TextField(blank=True, null=True)
@@ -112,7 +40,7 @@ class AssessmentsFa(models.Model):
     task_name = models.TextField(blank=True, null=True)
     teachers = models.TextField(blank=True, null=True)
     student_score = models.TextField(blank=True, null=True)
-    max_score_old = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    max_score_old = models.TextField(blank=True, null=True)
     count_sdl_t1 = models.TextField(blank=True, null=True)
     count_sdl_t2 = models.TextField(blank=True, null=True)
     count_sdl_t3 = models.TextField(blank=True, null=True)
@@ -147,6 +75,23 @@ class AssessmentsFa(models.Model):
         db_table = "assessments_fa"
 
 
+class AssessmentsNonAcademic(models.Model):
+    enrollment_id = models.TextField(blank=True, null=True)
+    subject = models.TextField(blank=True, null=True)
+    grade = models.TextField(blank=True, null=True)
+    assessment_type = models.TextField(blank=True, null=True)
+    task_name = models.TextField(blank=True, null=True)
+    student_score = models.TextField(blank=True, null=True)
+    max_score_old = models.TextField(blank=True, null=True)
+    total_percentage = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    descriptive_analysis = models.TextField(blank=True, null=True)
+    prescriptive_analysis = models.TextField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = "assessments_non_academic"
+
+
 class AssessmentsSa(models.Model):
     enrollment_id = models.TextField(blank=True, null=True)
     subject = models.TextField(blank=True, null=True)
@@ -157,7 +102,7 @@ class AssessmentsSa(models.Model):
     task_name = models.TextField(blank=True, null=True)
     teachers = models.TextField(blank=True, null=True)
     student_score = models.TextField(blank=True, null=True)
-    max_score_old = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    max_score_old = models.TextField(blank=True, null=True)
     count_sa = models.TextField(blank=True, null=True)
     count_hye_t1 = models.TextField(blank=True, null=True)
     count_hye_t2 = models.TextField(blank=True, null=True)
@@ -170,6 +115,7 @@ class AssessmentsSa(models.Model):
     count_others = models.TextField(blank=True, null=True)
     current_average_t1 = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     current_average_t2 = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    current_average_t3 = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     current_percentage = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     predicted_percentage = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     predicted_percentage_t1 = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
@@ -188,86 +134,46 @@ class AssessmentsSa(models.Model):
         db_table = "assessments_sa"
 
 
-class AuthGroup(models.Model):
-    # NOTE: table has an 'id' column.
-    id = models.AutoField(primary_key=True)
-    name = models.TextField(blank=True, null=True)
+class Correlation(models.Model):
+    enrollment_id = models.TextField(blank=True, null=True)
+    eol_fa_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    eol_sa_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    eol_wt_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    eol_sdl_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    eol_le_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    eol_phe_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    fa_sa_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    fa_wt_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    fa_sdl_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    fa_le_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    fa_phe_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    wt_sa_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    wt_sdl_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    wt_le_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    wt_phe_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    sdl_sa_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    sdl_le_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    sdl_phe_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    phe_sa_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    phe_le_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    phe_sdl_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    le_sa_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    le_wt_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    le_fa_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    le_sdl_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    eol_fa_sa_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    wt_sdl_fa_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    phe_sdl_eol_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    fa_le_sa_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    wt_le_sdl_corr = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    correlation_analysis = models.JSONField(blank=True, null=True)
+    holistic_analysis = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         managed = False
-        db_table = "auth_group"
-
-
-class AuthGroupPermissions(models.Model):
-    # NOTE: table has an 'id' column.
-    id = models.AutoField(primary_key=True)
-    group_id = models.TextField(blank=True, null=True)
-    permission_id = models.TextField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = "auth_group_permissions"
-
-
-class AuthPermission(models.Model):
-    # NOTE: table has an 'id' column.
-    id = models.AutoField(primary_key=True)
-    name = models.TextField(blank=True, null=True)
-    content_type_id = models.TextField(blank=True, null=True)
-    codename = models.TextField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = "auth_permission"
-
-
-class DjangoAdminLog(models.Model):
-    # NOTE: table has an 'id' column.
-    id = models.AutoField(primary_key=True)
-    action_time = models.DateTimeField(blank=True, null=True)
-    object_id = models.TextField(blank=True, null=True)
-    object_repr = models.TextField(blank=True, null=True)
-    action_flag = models.TextField(blank=True, null=True)
-    change_message = models.TextField(blank=True, null=True)
-    content_type_id = models.TextField(blank=True, null=True)
-    user_id = models.TextField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = "django_admin_log"
-
-
-class DjangoContentType(models.Model):
-    # NOTE: table has an 'id' column.
-    id = models.AutoField(primary_key=True)
-    app_label = models.TextField(blank=True, null=True)
-    model = models.TextField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = "django_content_type"
-
-
-class DjangoMigrations(models.Model):
-    # NOTE: table has an 'id' column.
-    id = models.AutoField(primary_key=True)
-    app = models.TextField(blank=True, null=True)
-    name = models.TextField(blank=True, null=True)
-    applied = models.DateTimeField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = "django_migrations"
-
-
-class DjangoSession(models.Model):
-    session_key = models.TextField(blank=True, null=True)
-    session_data = models.TextField(blank=True, null=True)
-    expire_date = models.DateTimeField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = "django_session"
+        db_table = "correlation"
 
 
 class DpGradeBoundaries(models.Model):
@@ -301,6 +207,7 @@ class Enrollments(models.Model):
     current = models.TextField(blank=True, null=True)
     current_grade_overall = models.TextField(blank=True, null=True)
     predicted_grade_overall = models.TextField(blank=True, null=True)
+    total_grade_overall = models.TextField(blank=True, null=True)
 
     class Meta:
         managed = False
@@ -338,31 +245,6 @@ class Subjects(models.Model):
     class Meta:
         managed = False
         db_table = "subjects"
-
-
-class TokenBlacklistBlacklistedtoken(models.Model):
-    # NOTE: table has an 'id' column.
-    id = models.AutoField(primary_key=True)
-    blacklisted_at = models.DateTimeField(blank=True, null=True)
-    token_id = models.TextField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = "token_blacklist_blacklistedtoken"
-
-
-class TokenBlacklistOutstandingtoken(models.Model):
-    # NOTE: table has an 'id' column.
-    id = models.AutoField(primary_key=True)
-    token = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(blank=True, null=True)
-    expires_at = models.DateTimeField(blank=True, null=True)
-    user_id = models.TextField(blank=True, null=True)
-    jti = models.TextField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = "token_blacklist_outstandingtoken"
 
 
 class UsersTable(models.Model):
