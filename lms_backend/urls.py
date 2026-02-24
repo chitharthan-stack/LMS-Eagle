@@ -1,13 +1,13 @@
 from django.contrib import admin
 from django.urls import path, include
-from LMS_users.views import choose_login
+# from LMS_users.views import choose_login
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("auth/", include("LMS_users.urls")),
-    path("", choose_login, name="choose_login"),
+    # path("auth/", include("LMS_users.urls")),
+    # path("", choose_login, name="choose_login"),
 
     # API app
     path("api/", include("api.urls")),
